@@ -1,3 +1,12 @@
+import {
+  number as _number,
+  object as _object,
+  array,
+  bool,
+  mixed,
+  string,
+} from 'yup';
+
 export const isProd = process.env.APP_ENV === 'prod';
 
 /** @type {(truckType: string) => string[]} */
@@ -391,4 +400,4 @@ export const sleep = (ms) => {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
-}
+};
