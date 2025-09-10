@@ -21,8 +21,8 @@ export const execute = async () => {
   /** @type {import('./types').IPlatform} */
   const target = {
     id: 1,
-    company_id: 1,
-    partner_id: '1',
+    company_id: 2,
+    partner_id: 'smart-logist',
     partner: {
       id: 'smart-logist',
       key: '1',
