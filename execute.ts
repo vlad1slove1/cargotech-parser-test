@@ -38,25 +38,7 @@ const login = async (target: IPlatform, page: Page): Promise<void> => {
   console.log('[LOGIN] авторизация завершена');
 };
 
-export const execute = async (): Promise<void> => {
-  const target: IPlatform = {
-    id: 1,
-    company_id: 2,
-    partner_id: 'smart-logist',
-    partner: { id: 'nzsp', key: '1', name: 'Smart Logist' },
-    company: {
-      id: 2,
-      inn: '9716027491',
-      name: 'ООО "Амурский Региональный Торговый Порт"',
-    },
-    config: {
-      username: process.env.USERNAME || '',
-      password: process.env.PASSWORD || '',
-    },
-    contacts: [],
-    only_inn: [],
-  };
-
+export const execute = async (target: IPlatform): Promise<void> => {
   const browser = await initBrowser();
 
   try {
