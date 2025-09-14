@@ -1,8 +1,11 @@
 {
   "name": "cargotech-parser-test",
   "version": "1.0.0",
-  "main": "execute.js",
+  "main": "dist/execute.js",
   "scripts": {
+    "build": "tsc",
+    "start": "node dist/init.js",
+    "dev": "tsc && node dist/init.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -16,5 +19,9 @@
     "puppeteer": "^24.20.0",
     "redis": "^5.8.2",
     "yup": "^1.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
   }
 }

@@ -1,3 +1,4 @@
+import { writeFileSync } from 'fs';
 import {
   number as _number,
   object as _object,
@@ -6,16 +7,16 @@ import {
   mixed,
   string,
 } from 'yup';
+import { ISchema } from './types.js';
 
-export const isProd = process.env.APP_ENV === 'prod';
+export const isProd: boolean = process.env.APP_ENV === 'prod';
 
-/** @type {(truckType: string) => string[]} */
-export const getTruckTypes = (truckType) => {
+export const getTruckTypes = (truckType: string): string[] => {
   if (typeof truckType !== 'string') {
     return ['тент'];
   }
 
-  const regexes = [
+  const regexes: Array<[RegExp, string]> = [
     [/awning|curtainsider|тент|закрытый|тс до/i, 'тент'],
     [/thermally_insulated|isothermal|терм/i, 'изотерм'],
     [/refrigerator|реф/i, 'рефрижератор'],
@@ -38,7 +39,7 @@ export const getTruckTypes = (truckType) => {
     [/тонар/i, 'тонар'],
   ];
 
-  const res = [];
+  const res: string[] = [];
 
   for (const [regex, type] of regexes) {
     if (truckType.match(regex)) {
@@ -53,13 +54,12 @@ export const getTruckTypes = (truckType) => {
   return [...new Set(res)];
 };
 
-/** @type {(loadTypes: string) => string[]} */
-export const getLoadTypes = (loadTypes) => {
+export const getLoadTypes = (loadTypes: string): string[] => {
   if (typeof loadTypes !== 'string') {
     return ['задняя'];
   }
 
-  const regexes = [
+  const regexes: Array<[RegExp, string]> = [
     [/зад|rear|zad/i, 'задняя'],
     [/верх|top/i, 'верхняя'],
     [/бок|side/i, 'боковая'],
@@ -67,7 +67,7 @@ export const getLoadTypes = (loadTypes) => {
     [/аппарели/i, 'аппарели'],
   ];
 
-  const res = [];
+  const res: string[] = [];
 
   for (const [regex, type] of regexes) {
     if (loadTypes.match(regex)) {
@@ -82,12 +82,12 @@ export const getLoadTypes = (loadTypes) => {
   return [...new Set(res)];
 };
 
-export const getCargoType = (cargoType) => {
+export const getCargoType = (cargoType: string): string => {
   if (typeof cargoType !== 'string') {
     return 'ТНП';
   }
 
-  const regexes = [
+  const regexes: Array<[RegExp, string]> = [
     [/труб/gi, 'Трубы'],
     [
       /полипропилен|полиэтилен|полиэтилентерефталат|ПЭТФ|ПЭ|полистирол/gi,
@@ -102,7 +102,7 @@ export const getCargoType = (cargoType) => {
     [/кольцо уплот|задвиж|затвор/gi, 'Оборудование и запчасти'],
     [/тройник|металлоконструкции/gi, 'Оборудование и запчасти'],
     [/пленка БОПП/gi, 'Пленка БОПП'],
-    [/кабель/gi, 50],
+    [/кабель/gi, '50'],
     [/ТНП|Продукты питания|Личные вещи/gi, 'ТНП'],
     [/Хим.+опас/gi, 'Хим. продукты опасные'],
     [/Хим/gi, 'Хим. продукты неопасные'],
@@ -130,11 +130,14 @@ export const getCargoType = (cargoType) => {
   return 'ТНП';
 };
 
-const saveJson = (fileName, preparedData) => {
-  writeFileSync(`public/${fileName}.json`, JSON.stringify(preparedData));
+const saveJson = (fileName: string, preparedData: unknown): void => {
+  writeFileSync(
+    `public/${fileName}.json`,
+    JSON.stringify(preparedData, null, 2)
+  );
 };
 
-export const orderDicts = /** @type {const} */ ({
+export const orderDicts = {
   additionalConditions: {
     temperatureRegime: 1,
     medicalBook: 2,
@@ -142,147 +145,154 @@ export const orderDicts = /** @type {const} */ ({
     partialLoad: 4, // Единственное что работает пока что
     MKAD: 5,
   },
-});
-
-/** @typedef {keyof typeof orderDicts.additionalConditions} AdditionalConditions */
-/** @typedef {typeof orderDicts.additionalConditions[AdditionalConditions]} AdditionalConditionsValues */
+} as const;
 
 export const orderSchema = _object().shape({
   cargo: _object()
     .shape({
       external_id: string().required(),
-      external_additional_id: string(),
-      /** @type {import("yup").StringSchema<"auction" | "express">} */
+      external_additional_id: string().optional(),
       type: string()
         .matches(/(auction|express)/)
         .required(),
 
-      price: _number().min(0).required().integer(), // price with vat
-      price_vat: _number().min(0).integer(), // price without vat
+      price: _number().min(0).required().integer(),
+      price_vat: _number().min(0).integer().optional(),
       weight: _number().min(0).required().integer(),
       volume: _number().min(0).required(),
 
-      cargo_type_id: mixed(),
-      money_type_id: mixed(),
-      currency_id: mixed(),
+      cargo_type_id: mixed().optional(),
+      money_type_id: mixed().optional(),
+      currency_id: mixed().optional(),
 
       truck_types: array().of(mixed()).required(),
       load_types: array().of(mixed()).required(),
-      unload_types: array().of(mixed()),
-      /** @type {import("yup").ArraySchema<AdditionalConditionsValues[]>} */
-      additional_conditions: array().of(mixed()),
+      unload_types: array().of(mixed()).optional(),
+      additional_conditions: array().of(mixed()).optional(),
 
       // Truck object
-      truck: _object().shape({
-        tir: bool(),
-        cmr: bool(),
-        t1: bool(),
-        quantity: _number(),
-        belt_count: _number().min(1).integer(),
-        place_count: _number().min(1).integer(),
-        pallet_count: _number().integer().min(0).max(100),
-        san_passport: bool(),
-        medical_book: bool(),
-        coupling: bool(),
-        koniki: bool(),
-        temperature_from: _number().integer().min(-100).max(100),
-        temperature_to: _number().integer().min(-100).max(100),
-        adr: _number().integer().min(0).max(9),
+      truck: _object()
+        .shape({
+          tir: bool().optional(),
+          cmr: bool().optional(),
+          t1: bool().optional(),
+          quantity: _number().optional(),
+          belt_count: _number().min(1).integer().optional(),
+          place_count: _number().min(1).integer().optional(),
+          pallet_count: _number().integer().min(0).max(100).optional(),
+          san_passport: bool().optional(),
+          medical_book: bool().optional(),
+          coupling: bool().optional(),
+          koniki: bool().optional(),
+          temperature_from: _number().integer().min(-100).max(100).optional(),
+          temperature_to: _number().integer().min(-100).max(100).optional(),
+          adr: _number().integer().min(0).max(9).optional(),
 
-        height: _number().integer(),
-        length: _number().integer(),
-        width: _number().integer(),
-        weight: _number().integer(),
-        volume: _number().integer(),
-      }),
+          height: _number().integer().optional(),
+          length: _number().integer().optional(),
+          width: _number().integer().optional(),
+          weight: _number().integer().optional(),
+          volume: _number().integer().optional(),
+        })
+        .optional(),
 
       // Auction object
-      auction: _object().shape({
-        bind: string(),
-        duration: _number(),
-        start_date: string(),
-        finish_date: string(),
-      }),
+      auction: _object()
+        .shape({
+          bind: string().optional(),
+          duration: _number().optional(),
+          start_date: string().optional(),
+          finish_date: string().optional(),
+        })
+        .optional(),
 
       // Payment object
-      payment: _object().shape({
-        type: string(),
-        prepay: _number(),
-        vat: _number(),
-        prepay_in_fuel: bool(),
-        tax_rate: _number(),
-        credit_score: string(),
-        payday: _number(),
-        pay_on_unload: bool(),
-        bargain: bool(),
+      payment: _object()
+        .shape({
+          type: string().optional(),
+          prepay: _number().optional(),
+          vat: _number().optional(),
+          prepay_in_fuel: bool().optional(),
+          tax_rate: _number().optional(),
+          credit_score: string().optional(),
+          payday: _number().optional(),
+          pay_on_unload: bool().optional(),
+          bargain: bool().optional(),
 
-        in_cash: bool(),
+          in_cash: bool().optional(),
 
-        cargo_price: _number(),
+          cargo_price: _number().optional(),
 
-        advance_amount: _number(),
-        advance_percent: _number(),
+          advance_amount: _number().optional(),
+          advance_percent: _number().optional(),
 
-        only_no_vat_price: bool(),
-        only_vat_price: bool(),
-      }),
+          only_no_vat_price: bool().optional(),
+          only_vat_price: bool().optional(),
+        })
+        .optional(),
 
       // Size object
-      size: _object().shape({
-        height: _number().min(0).integer(),
-        length: _number().min(0).integer(),
-        width: _number().min(0).integer(),
-        diameter: _number().min(0).integer(),
-      }),
+      size: _object()
+        .shape({
+          height: _number().min(0).integer().optional(),
+          length: _number().min(0).integer().optional(),
+          width: _number().min(0).integer().optional(),
+          diameter: _number().min(0).integer().optional(),
+        })
+        .optional(),
 
       // Extra object
-      extra: _object().shape({
-        note: string(),
-        note_valid: bool(),
+      extra: _object()
+        .shape({
+          note: string().optional(),
+          note_valid: bool().optional(),
 
-        external_inn: string(),
-        custom_cargo_type: string(),
+          external_inn: string().optional(),
+          custom_cargo_type: string().optional(),
 
-        integrate: _object(),
-        integrate_contacts: _object(),
+          integrate: _object().optional(),
+          integrate_contacts: _object().optional(),
 
-        krugoreis: bool(),
-        partial_load: bool(),
+          krugoreis: bool().optional(),
+          partial_load: bool().optional(),
 
-        bid_id: string(),
-        url: string(),
-      }),
+          bid_id: string().optional(),
+          url: string().optional(),
+        })
+        .optional(),
 
       // Грузовладелец
-      owner: _object().shape({
-        inn: string(),
-        name: string(),
-        city: string(),
-        region: string(),
-      }),
+      owner: _object()
+        .shape({
+          inn: string().optional(),
+          name: string().optional(),
+          city: string().optional(),
+          region: string().optional(),
+        })
+        .optional(),
 
       // Cargotech user IDs
-      contact_ids: array().of(_number().integer()),
+      contact_ids: array().of(_number().integer()).optional(),
 
       // USA only
-      external_contacts: array().of(
-        _object().shape({
-          name: string(),
-          phones: array().of(string()),
-          email: string(),
-        })
-      ),
+      external_contacts: array()
+        .of(
+          _object().shape({
+            name: string().optional(),
+            phones: array().of(string()).optional(),
+            email: string().optional(),
+          })
+        )
+        .optional(),
 
       points: array()
         .min(2)
         .required()
         .of(
           _object().shape({
-            /** @type {import("yup").StringSchema<"start" | "extra" | "finish">} */
             position: string()
               .matches(/(start|extra|finish)/)
               .required(),
-            /** @type {import("yup").StringSchema<"load" | "unload">} */
             type: string()
               .matches(/(load|unload)/)
               .required(),
@@ -291,7 +301,7 @@ export const orderSchema = _object().shape({
               then: () =>
                 string().required('У стартовой точки всегда должна быть дата'),
             }),
-            last_date: string(),
+            last_date: string().optional(),
             company_inn: string().when('position', {
               is: 'start',
               then: () =>
@@ -300,35 +310,24 @@ export const orderSchema = _object().shape({
                 ),
             }),
             address: string().required(),
-            latitude: _number(),
-            longitude: _number(),
+            latitude: _number().optional(),
+            longitude: _number().optional(),
           })
         ),
     })
     .required(),
 });
 
-/**
- *
- * @param {string} partnerId
- * @param {number} companyId
- * @param {Helpers.ISchema[]} orders
- * @param {number} beforeOrderCount
- * @param {number} startTime
- * @param {number} finishTime
- * @param {*} error
- * @param {*} timezone
- */
 export const saveOrders = async (
-  partnerId,
-  companyId,
-  orders,
-  beforeOrderCount = 0,
-  startTime = 0,
-  finishTime = 0,
-  error = null,
-  timezone = 'Europe/Moscow'
-) => {
+  partnerId: string,
+  companyId: number,
+  orders: ISchema[],
+  beforeOrderCount: number = 0,
+  startTime: number = 0,
+  finishTime: number = 0,
+  error: unknown = null,
+  timezone: string = 'Europe/Moscow'
+): Promise<void> => {
   const fileName = `${companyId}_${partnerId}`;
 
   const preparedData = {
@@ -356,7 +355,7 @@ export const saveOrders = async (
     );
   } catch (e) {
     console.error(`Error saving orders for ${partnerId} ${companyId}: ${e}`);
-    preparedData.errors = JSON.stringify(e.errors);
+    preparedData.errors = JSON.stringify((e as Error).message);
   }
 
   saveJson(fileName, preparedData);
@@ -396,7 +395,7 @@ export const saveOrders = async (
   console.log(`Import finished: ${companyId} ${partnerId}`);
 };
 
-export const sleep = (ms) => {
+export const sleep = (ms: number): Promise<void> => {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
